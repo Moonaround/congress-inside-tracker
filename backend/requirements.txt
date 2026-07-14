@@ -1,12 +1,7 @@
-# Runtime dependency for the Python intelligence core.
-# The suspicion score is a documented heuristic (stdlib re/math), so no
-# xgboost/scikit-learn artifact is required. The bill correlation runs from a
-# local map (no supabase client needed). Only the LLM summary needs a package,
-# and it degrades gracefully when OPENAI_API_KEY is absent.
-xgboost==2.0.3
-scikit-learn==1.4.1.post1
-openai==1.14.1
-supabase==2.4.0
-python-dotenv==1.0.1
-yfinance==0.2.52
-requests==2.32.3
+# Python intelligence core dependencies (must match what pipeline.py imports).
+openai==1.14.1          # LLM synthesis via OpenRouter's OpenAI-compatible gateway
+httpx==0.27.2           # pin: openai 1.14.1 breaks on httpx>=0.28 ("proxies" TypeError)
+python-dotenv==1.0.1    # load backend/.env
+yfinance==0.2.52        # company / industry / price lookups
+requests==2.32.3        # Alpha Vantage OVERVIEW (high-risk targets only)
+chromadb==0.5.5         # local persistent vector store for bill correlation

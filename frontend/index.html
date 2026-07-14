@@ -135,8 +135,9 @@
         async function fetchSystemData() {
             container.innerHTML = "<p style='color: var(--text-muted);'>Syncing network telemetry nodes and running AI models...</p>";
             try {
-                // Pointing to your exact local API gateway instance
-                const response = await fetch('http://127.0.0');
+                // Pointing to the local API gateway instance (server.js on :3000).
+                const response = await fetch('http://127.0.0.1:3000/api/analyze-trades');
+                if (!response.ok) throw new Error(`Gateway returned HTTP ${response.status}`);
                 const data = await response.json();
                 
                 container.innerHTML = ""; 

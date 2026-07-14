@@ -1,8 +1,8 @@
 # 🏛️ Congress Insider Trading Sentiment Engine (CITSE)
 [![License: MIT](https://shields.io)](LICENSE)
 [![Engine: Node.js v20+](https://shields.io)](https://nodejs.org)
-[![Model: XGBoost--v2.0](https://shields.io)](https://readthedocs.io)
-[![Database: Supabase/Vector](https://shields.io)](https://supabase.com)
+[![LLM: OpenRouter](https://shields.io)](https://openrouter.ai)
+[![Vectors: ChromaDB](https://shields.io)](https://www.trychroma.com)
 
 An asynchronous, AI-powered system designed to ingest public Congressional financial disclosure feeds, calculate a composite risk vector using tabular ML scoring models, and perform semantic document correlation against open legislative text.
 
@@ -22,16 +22,16 @@ CITSE operates as an asynchronous multi-runtime ingestion and reasoning pipeline
                      │ (Subprocess IPC / Base64 Data Packet)
                      ▼
   ┌─────────────────────────────────────┐
-  │     Python 3.11 Intelligence Core    │
+  │     Python 3.12 Intelligence Core    │
   └─────────────────────────────────────┘
         │                 │                │
         ▼                 ▼                ▼
  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
- │   Tabular    │ │ Vector Search│ │  LLM Multi-  │
- │ XGBoost Model│ │ (SupabaseDB) │ │ Agent Engine │
+ │  Heuristic   │ │ Vector Search│ │  OpenRouter  │
+ │ Score + Data │ │  (ChromaDB)  │ │  LLM Engine  │
  └──────────────┘ └──────────────┘ └──────────────┘
-  Feature Matrix   Semantic Bill   Reasoning & NLP
-   Risk Scoring    Matching Engine  Summary Synthesis
+  Suspicion +      Semantic Bill   Reasoning & NLP
+  Market Context   Matching Engine  Summary Synthesis
         │                 │                │
         └─────────────────┼────────────────┘
                           ▼
@@ -42,10 +42,11 @@ CITSE operates as an asynchronous multi-runtime ingestion and reasoning pipeline
 ```
 
 - **Gateway Service (Node.js/Express)**: Implements high-throughput, non-blocking I/O to interface with the frontend terminal and pull downstream public data pools from Amazon S3 buckets. Handles secure cross-origin resource sharing (CORS) and manages decoupled execution lifecycles.
-- **Data Serialization & Processing Core (Python 3.11)**: Runs isolated feature-extraction operations. Unstructured transaction bounds are systematically stripped, tokenized, and transformed into numeric continuous tensors for machine learning processing.
-- **Tabular ML Scoring Layer (XGBoost / Scikit-Learn)**: Analyzes statistical risk factors (Transaction Type, Asset Size Band, Politician Committee Assignment History) to output a dynamic, non-linear Suspicion Weight Vector scaled from `1` to `100`.
-- **Semantic Mapping Matrix (Supabase Vector / Embeddings)**: Converts active corporate asset tickers and congressional bill scripts into high-dimensional vector embeddings (`text-embedding-3-small`). Executes cosine similarity queries to cross-reference transactions against active legislation hidden behind committee walls.
-- **Generative Synthesis Agent (OpenAI/Gemini Orchestrator)**: Injects programmatic system instructions to process the analytical context into clear forensic insights, tracking political trading activities with precision.
+- **Data Serialization & Processing Core (Python 3.12)**: Runs isolated feature-extraction. Unstructured transaction bounds are stripped and parsed into continuous integers for scoring.
+- **Suspicion Scoring Layer (log-scaled heuristic)**: Parses the dollar band, log-scales it, and weights purchases above sales (ω = 1.5 for purchases over $1M) to output a non-linear suspicion score from `1` to `100`. Deterministic and dependency-free.
+- **Market Context Layer (yfinance + Alpha Vantage)**: Resolves company name, industry, and price via `yfinance`; escalates to Alpha Vantage's `OVERVIEW` endpoint for P/E and precise industry only on high-suspicion (score ≥ 75) targets. Both fail soft.
+- **Semantic Mapping Matrix (local ChromaDB vectors)**: Embeds each company's industry classification and congressional bill text with a local sentence-transformer model (all-MiniLM-L6-v2, persisted under `backend/chroma_db/`) and runs a cosine-similarity nearest-neighbour query. Runs fully offline after the first model download — no per-query token cost.
+- **Generative Synthesis Agent (OpenRouter via OpenAI SDK)**: Sends the analytical context to a free-tier model (`meta-llama/llama-3.1-8b-instruct:free`) under strict anti-hallucination, score-tiered instructions. Falls back to a deterministic template when no key is configured.
 
 ---
 
@@ -72,14 +73,19 @@ congress-inside-tracker/
 
 ## ⚙️ Enterprise Deployment & Environment Lifecycle Setup
 
-### 1. Configure the Local Security Vault (`backend/.env`)
-Create an encrypted environment variable file inside your local backend workspace:
+### 1. Configure the Local Environment Vault (`backend/.env`)
+Create an environment file inside your local backend workspace. The LLM layer
+talks to **OpenRouter** through the OpenAI SDK, so `OPENAI_API_KEY` holds your
+OpenRouter key. All keys are optional — the pipeline degrades to deterministic
+fallbacks when any is absent.
 ```ini
 PORT=3000
-OPENAI_API_KEY=your_production_llm_api_key_here
-FINANCIAL_API_KEY=your_live_market_data_feed_api_key
-SUPABASE_URL=https://supabase.co
-SUPABASE_KEY=your_high_privilege_service_role_database_key
+# OpenRouter key (used by the OpenAI SDK). Without it, summaries use a template.
+OPENAI_API_KEY=your_openrouter_key_here
+AI_BASE_URL=https://openrouter.ai/api/v1
+AI_MODEL=meta-llama/llama-3.1-8b-instruct:free
+# Alpha Vantage key — only queried for high-suspicion (score >= 75) targets.
+FINANCIAL_API_KEY=your_alphavantage_key_here
 ```
 
 ### 2. Launch the Node.js API Gateway Microservice
@@ -118,9 +124,9 @@ The processing engine evaluates incoming asset data bands (`trade['amount']`) co
 $$\text{Continuous Int Matrix} = \max\left(\left[ \text{int}(x) \text{ for } x \text{ in } \text{re.findall}(\text{r'[\d,]+'}, \text{String}) \right]\right)$$
 
 ### Non-Linear Suspicion Scoring Formula
-The XGBoost model processes the parsed transaction size alongside localized multi-committee categorical mappings. It computes a localized baseline score weighted dynamically by capital risk thresholds:
+The scoring layer log-scales the parsed transaction size into a baseline, then weights it by direction and capital-risk thresholds. With $\text{Base} = 10 \cdot \log_{10}(\text{max\_value})$:
 
-$$Score = \min\left(100, \lfloor \text{Base} \times \omega \rfloor\right) \quad \text{where} \quad \omega = \begin{cases} 1.5 & \text{if } \text{max\_value} > \$1,000,000 \text{ and Type} = \text{'Purchase'} \\ 1.0 & \text{otherwise} \end{cases}$$
+$$Score = \max\left(1,\; \min\left(100, \lfloor \text{Base} \times \omega \rfloor\right)\right) \quad \text{where} \quad \omega = \begin{cases} 1.5 & \text{if } \text{max\_value} \geq \$1{,}000{,}000 \text{ and Type} = \text{'Purchase'} \\ 1.2 & \text{if } \text{Type} = \text{'Purchase'} \\ 1.0 & \text{otherwise} \end{cases}$$
 
 ---
 
