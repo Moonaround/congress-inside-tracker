@@ -1,49 +1,188 @@
-async function fetchSystemData() {
-    container.innerHTML = "<p style='color: var(--text-muted);'>Syncing network telemetry nodes and running AI models...</p>";
-    try {
-        // FIXED: Explicit IP tracking targets port 3000 seamlessly
-        const response = await fetch('http://127.0.0');
-        const data = await response.json();
-        
-        container.innerHTML = ""; // Clear out loader string text
-        
-        data.forEach(trade => {
-            const card = document.createElement('div');
-            card.className = `trade-card ${trade.score > 75 ? 'critical' : ''}`;
-            
-            card.innerHTML = `
-                <div>
-                    <div class="metric-label">Politician Profile</div>
-                    <div class="metric-value" style="font-size: 20px; color: var(--primary);">${trade.politician}</div>
-                    <div style="margin-top: 15px; display: flex; gap: 30px;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Congress Insider Terminal</title>
+    <style>
+        :root {
+            --bg-base: #09090b;
+            --bg-surface: #141417;
+            --primary: #00ff88;
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --border: #27272a;
+            --alert-high: #ef4444;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .dashboard {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin: 0;
+            color: var(--text-main);
+        }
+
+        h1 span { color: var(--primary); }
+
+        .btn {
+            background-color: var(--primary);
+            color: var(--bg-base);
+            border: none;
+            padding: 10px 20px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover { opacity: 0.9; }
+
+        .terminal-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .trade-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .trade-card.critical {
+            border-left: 4px solid var(--alert-high);
+        }
+
+        .metric-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .metric-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .ai-panel {
+            background-color: #0d1511;
+            border: 1px solid #143825;
+            border-radius: 6px;
+            padding: 16px;
+            grid-column: span 2;
+        }
+
+        .score-badge {
+            background-color: var(--alert-high);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 800;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <header>
+            <div>
+                <h1>CONGRESS <span>INSIDER</span> TERMINAL</h1>
+                <p style="color: var(--text-muted); margin: 5px 0 0 0;">AI Quantitative Political Sentiment Engine</p>
+            </div>
+            <button class="btn" id="refresh-trigger">Execute Sync Pipeline</button>
+        </header>
+
+        <main class="terminal-grid" id="terminal-output">
+            <p style="color: var(--text-muted);">Terminal idle. Press the sync button to fetch live data...</p>
+        </main>
+    </div>
+
+    <!-- THE SCRIPT IS WRAPPED PROPERLY HERE -->
+    <script>
+        const container = document.getElementById('terminal-output');
+        const trigger = document.getElementById('refresh-trigger');
+
+        async function fetchSystemData() {
+            container.innerHTML = "<p style='color: var(--text-muted);'>Syncing network telemetry nodes and running AI models...</p>";
+            try {
+                // Pointing to your exact local API gateway instance
+                const response = await fetch('http://127.0.0');
+                const data = await response.json();
+                
+                container.innerHTML = ""; 
+                
+                data.forEach(trade => {
+                    const card = document.createElement('div');
+                    card.className = `trade-card ${trade.score > 75 ? 'critical' : ''}`;
+                    
+                    card.innerHTML = `
                         <div>
-                            <div class="metric-label">Asset Block</div>
-                            <div class="metric-value">${trade.ticker}</div>
+                            <div class="metric-label">Politician Profile</div>
+                            <div class="metric-value" style="font-size: 20px; color: var(--primary);">${trade.politician}</div>
+                            <div style="margin-top: 15px; display: flex; gap: 30px;">
+                                <div>
+                                    <div class="metric-label">Asset Block</div>
+                                    <div class="metric-value">${trade.ticker}</div>
+                                </div>
+                                <div>
+                                    <div class="metric-label">Transaction Vector</div>
+                                    <div class="metric-value">${trade.type}</div>
+                                </div>
+                                <div>
+                                    <div class="metric-label">Capital Band</div>
+                                    <div class="metric-value">${trade.amount}</div>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <div class="metric-label">Transaction Vector</div>
-                            <div class="metric-value">${trade.type}</div>
+                        <div style="text-align: right; display: flex; flex-direction: column; justify-content: center; align-items: flex-end;">
+                            <div class="metric-label">Suspicion Risk</div>
+                            <div><span class="score-badge">${trade.score}/100</span></div>
+                            <div class="metric-label" style="margin-top: 10px;">Filed: ${trade.date}</div>
                         </div>
-                        <div>
-                            <div class="metric-label">Capital Band</div>
-                            <div class="metric-value">${trade.amount}</div>
+                        <div class="ai-panel">
+                            <div class="metric-label" style="color: var(--primary);">🤖 AI Investigative Synthesis Reports</div>
+                            <p style="margin: 6px 0 0 0; font-size: 14px; line-height: 1.5; color: #e4e4e7;">${trade.summary}</p>
                         </div>
-                    </div>
-                </div>
-                <div style="text-align: right; display: flex; flex-direction: column; justify-content: center; align-items: flex-end;">
-                    <div class="metric-label">Suspicion Risk</div>
-                    <div><span class="score-badge">${trade.score}/100</span></div>
-                    <div class="metric-label" style="margin-top: 10px;">Filed: ${trade.date}</div>
-                </div>
-                <div class="ai-panel">
-                    <div class="metric-label" style="color: var(--primary);">🤖 AI Investigative Synthesis Reports</div>
-                    <p style="margin: 6px 0 0 0; font-size: 14px; line-height: 1.5; color: #e4e4e7;">${trade.summary}</p>
-                </div>
-            `;
-            container.appendChild(card);
-        });
-    } catch (err) {
-        // Fallback display if pipeline connections time out
-        container.innerHTML = "<p style='color: var(--alert-high);'>Critical Framework Connection Failure. Make sure node server.js is running on port 3000.</p>";
-    }
-}
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (err) {
+                container.innerHTML = "<p style='color: var(--alert-high);'>Critical Framework Connection Failure. Ensure node server.js is active on port 3000.</p>";
+            }
+        }
+
+        trigger.addEventListener('click', fetchSystemData);
+        fetchSystemData(); // Execute auto-load on start
+    </script>
+</body>
+</html>
