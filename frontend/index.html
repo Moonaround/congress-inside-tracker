@@ -13,6 +13,7 @@
             --text-muted: #a1a1aa;
             --border: #27272a;
             --alert-high: #ef4444;
+            --alert-medium: #f59e0b;
         }
 
         body {
@@ -80,6 +81,10 @@
             border-left: 4px solid var(--alert-high);
         }
 
+        .trade-card.warning {
+            border-left: 4px solid var(--alert-medium);
+        }
+
         .metric-label {
             font-size: 11px;
             text-transform: uppercase;
@@ -144,8 +149,20 @@
                 
                 data.forEach(trade => {
                     const card = document.createElement('div');
-                    card.className = `trade-card ${trade.score > 75 ? 'critical' : ''}`;
-                    
+                    // Tier the alert state by suspicion score:
+                    //   > 75          -> critical (red)
+                    //   40-74         -> warning  (orange)
+                    //   otherwise     -> none
+                    let tier = '';
+                    if (trade.score > 75) tier = 'critical';
+                    else if (trade.score >= 40) tier = 'warning';
+                    card.className = `trade-card ${tier}`;
+
+                    // Badge colour mirrors the tier (falls back to muted green for low risk).
+                    const badgeColor = tier === 'critical' ? 'var(--alert-high)'
+                        : tier === 'warning' ? 'var(--alert-medium)'
+                        : 'var(--primary)';
+
                     card.innerHTML = `
                         <div>
                             <div class="metric-label">Politician Profile</div>
@@ -167,7 +184,7 @@
                         </div>
                         <div style="text-align: right; display: flex; flex-direction: column; justify-content: center; align-items: flex-end;">
                             <div class="metric-label">Suspicion Risk</div>
-                            <div><span class="score-badge">${trade.score}/100</span></div>
+                            <div><span class="score-badge" style="background-color: ${badgeColor};">${trade.score}/100</span></div>
                             <div class="metric-label" style="margin-top: 10px;">Filed: ${trade.date}</div>
                         </div>
                         <div class="ai-panel">
@@ -192,6 +209,11 @@
 
         trigger.addEventListener('click', fetchSystemData);
         fetchSystemData(); // Initial load run on system start
+
+        // CHALLENGE 4.2: auto-refresh the feed every 15 minutes so the dashboard
+        // stays current without the user clicking "Execute Sync Pipeline".
+        const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
+        setInterval(fetchSystemData, REFRESH_INTERVAL_MS);
     </script>
 </body>
 </html>

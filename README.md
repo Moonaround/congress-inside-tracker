@@ -62,9 +62,7 @@ congress-inside-tracker/
 │   └── .env                 # Local Encrypted Security Vault (Exempt from Remote Tracking)
 │
 ├── frontend/
-│   ├── index.html           # High-Density Responsive Execution UI Terminal Layout
-│   ├── styles.css           # Cyberpunk Dark Mode Palette (CSS Variable Scoping)
-│   └── app.js               # Frontend Telemetry Router & Element Insertion Matrix
+│   └── index.html           # Self-contained Terminal UI (inline CSS + telemetry JS)
 │
 ├── .gitignore               # Strict Directory Compilation Exclusion Mappings
 └── README.md                # Enterprise Structural System Documentation Architecture
